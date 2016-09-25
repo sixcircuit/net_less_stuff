@@ -1,0 +1,101 @@
+var _ = require("dry-underscore");
+var csv = require("csv");
+
+function ltrim_to_numbers(str){
+    var result = "";
+    var found = false;
+    for(var i = 0; i < str.length; i++){
+        if(_.contains(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"], str[i])){ found = true; }
+        if(found){ result += str[i]; }
+    }
+    return(result);
+}
+
+function weight_string_to_ozs(str){
+
+    var lbs = 0;
+    var ozs = 0;
+
+    str = ltrim_to_numbers(str);
+
+    var pos = str.indexOf("lb");
+    if(pos >= 0){ 
+        lbs = +(str.substr(0, pos)); 
+        str = str.substr(pos + 2, str.length - (pos + 2));
+    }
+
+    str = ltrim_to_numbers(str);
+    pos = str.indexOf("oz");
+
+    if(pos >= 0){ ozs = +(str.substr(0, pos)); }
+
+    return((lbs * 16) + ozs);
+}
+
+function ozs_to_weight_string(ozs){
+
+    var lbs = Math.floor(ozs / 16);
+    var ozs = Math.round((ozs % 16) * 100) / 100;
+
+    return(lbs + " lb, " + ozs + " oz");
+}
+
+exports.run = function(){
+
+    function error_handler(err){ if(err){ throw(err); } }
+
+    var path = _.path.resolve(_.last(process.argv));
+    var filename = _.path.file(path);
+
+    await{ _.fs.readFile(path, _.plumb(defer(var file), error_handler)); }
+
+    await{ csv.parse(file, { columns : true, skip_empty_lines: true, trim: true }, _.plumb(defer(var records), error_handler)); }
+
+    var start_date = null;
+    var last_date = null;
+    var running_weight_oz = 0;
+
+    _.each(records, function(record){
+        var record_date = _.moment(record["Date"], ["MM/DD/YYYY", "YYYY-MM-DD"]);
+
+        if(!start_date){ start_date = record_date; }
+
+        // _.p("source: ", record);
+
+        record["Date"] = _.iso_date(record_date);
+
+        if(last_date){
+            var gap = record_date.diff(last_date, "days");
+            record["Gap"] = _.max(gap - 1, 0);
+        }else{
+            record["Gap"] = 0;
+        }
+
+        last_date = record_date;
+
+        record["Days Elapsed"] = _.iso_date(record["Date"]).diff(start_date, "days") + 1;
+        running_weight_oz += weight_string_to_ozs(record["Weight"]);
+        record["Total"] = ozs_to_weight_string(running_weight_oz);
+        record["Average / Day"] = ozs_to_weight_string(running_weight_oz / record["Days Elapsed"]);
+
+        // _.p("computed: ", record);
+    });
+
+    var elapsed = _.moment().diff(start_date, "days") + 1;
+
+    records.push({
+        "Date": "Today",
+        "Items": "",
+        "Days Elapsed": elapsed,
+        "Gap": _.moment().diff(last_date, "days"),
+        "Total": ozs_to_weight_string(running_weight_oz),
+        "Average / Day": ozs_to_weight_string(running_weight_oz / elapsed)
+    });
+
+    await{ csv.stringify(records, { header: true }, _.plumb(defer(var data), error_handler)); }
+
+    await{ _.fs.mkdir("./out", _.plumb(defer(), error_handler)); }
+
+    await{ _.fs.writeFile("./out/" + filename + ".out.csv", data, _.plumb(defer(), error_handler)); }
+
+};

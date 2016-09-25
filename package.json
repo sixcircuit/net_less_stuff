@@ -1,0 +1,13 @@
+{
+    "name": "net_less_stuff",
+    "description": "csv calculator",
+    "version": "0.0.1",
+    "private": true,
+    "devDependencies": {
+    },
+    "dependencies": {
+        "dry-underscore": ""
+        ,"csv": ""
+        ,"tamejs": ""
+    }
+}

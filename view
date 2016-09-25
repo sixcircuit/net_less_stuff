@@ -1,0 +1,4 @@
+#!/bin/bash
+this_dir=`dirname "$0"`
+out_file=`basename "$1"`
+$this_dir/process $1 && open $this_dir/out/$out_file.out.csv

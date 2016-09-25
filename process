@@ -1,0 +1,3 @@
+#!/bin/bash
+this_dir=`dirname "$0"`
+$this_dir/run_tame $this_dir/process.tjs $@ 
