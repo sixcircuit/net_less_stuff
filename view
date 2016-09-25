@@ -1,4 +1,6 @@
 #!/bin/bash
 this_dir=`dirname "$0"`
 out_file=`basename "$1"`
-$this_dir/process $1 && open $this_dir/out/$out_file.out.csv
+$this_dir/process $1 > ./$out_file.out.csv && open ./$out_file.out.csv 
+sleep 5
+rm ./$out_file.out.csv

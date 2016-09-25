@@ -94,8 +94,6 @@ exports.run = function(){
 
     await{ csv.stringify(records, { header: true }, _.plumb(defer(var data), error_handler)); }
 
-    await{ _.fs.mkdir("./out", _.plumb(defer(), error_handler)); }
-
-    await{ _.fs.writeFile("./out/" + filename + ".out.csv", data, _.plumb(defer(), error_handler)); }
+    _.stdout.write(data);
 
 };
